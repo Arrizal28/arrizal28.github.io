@@ -8,6 +8,7 @@ export function useHorizontalLenis(
   wrapperRef: RefObject<HTMLDivElement | null>,
   contentRef: RefObject<HTMLDivElement | null>,
   onProgress?: (progress: number) => void,
+  active = true,
 ) {
   const lenisRef = useRef<Lenis | null>(null)
   const onProgressRef = useRef(onProgress)
@@ -17,6 +18,8 @@ export function useHorizontalLenis(
   }, [onProgress])
 
   useEffect(() => {
+    if (!active) return
+
     const wrapper = wrapperRef.current
     const content = contentRef.current
     if (!wrapper || !content) return
@@ -59,7 +62,7 @@ export function useHorizontalLenis(
       lenis.destroy()
       lenisRef.current = null
     }
-  }, [wrapperRef, contentRef])
+  }, [wrapperRef, contentRef, active])
 
   return lenisRef
 }

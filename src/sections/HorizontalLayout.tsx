@@ -310,7 +310,7 @@ export function HorizontalLayout() {
         </div>
       </div>
 
-      <div className="pointer-events-none fixed right-6 bottom-8 left-6 z-40 md:right-12 md:left-12 lg:right-16 lg:left-16">
+      <div className="panel-content-inset pointer-events-none fixed right-0 bottom-8 left-0 z-40">
         <div className="mb-3 flex justify-between text-[10px] tracking-[0.3em] text-white/30 uppercase">
           <span>{worksLocked ? 'Scroll ↕' : 'Scroll →'}</span>
           <span>0{VIEWPORT_COUNT}</span>

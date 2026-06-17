@@ -141,32 +141,94 @@ html.lenis body {
   }
 }
 
+.panel-content-inset {
+  padding-left: clamp(2rem, 6vw, 5rem);
+  padding-right: clamp(2rem, 6vw, 5rem);
+}
+
 .project-detail-scroll {
   overscroll-behavior: contain;
 }
 
-.project-detail-hero-overlay {
-  background:
-    linear-gradient(to top, #050505 0%, rgba(5, 5, 5, 0.85) 35%, rgba(5, 5, 5, 0.2) 100%),
-    linear-gradient(to right, rgba(5, 5, 5, 0.6) 0%, transparent 50%);
+.project-detail-panel {
+  width: 100vw;
+  height: 100dvh;
+  flex-shrink: 0;
+}
+
+.project-detail-content-inset {
+  padding-left: clamp(2rem, 6vw, 5rem);
+  padding-right: clamp(2rem, 6vw, 5rem);
+}
+
+.project-detail-hero-strip {
+  gap: clamp(2.5rem, 5vw, 5rem);
+}
+
+.project-detail-hero-copy {
+  width: min(42rem, 88vw);
+  max-width: 42rem;
+}
+
+.project-detail-gallery-phones {
+  gap: clamp(2rem, 4vw, 4rem);
+  padding-right: clamp(2rem, 6vw, 5rem);
 }
 
 .project-detail-grid {
   display: grid;
   gap: 3rem;
+  width: 100%;
+  max-width: 72rem;
 }
 
 @media (min-width: 1024px) {
   .project-detail-grid {
-    grid-template-columns: 1.2fr 0.8fr;
-    gap: 4rem;
-    align-items: start;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 5rem;
+    align-items: center;
   }
 }
 
 .project-detail-impact {
-  position: sticky;
-  top: 6rem;
+  position: relative;
+}
+
+.project-detail-phone-item {
+  flex-shrink: 0;
+}
+
+.project-detail-phone {
+  position: relative;
+  width: min(70vw, 320px);
+  aspect-ratio: 9 / 19.5;
+  border-radius: 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #0b0b0b;
+  padding: 0.55rem;
+  box-shadow:
+    0 30px 60px -20px rgba(0, 0, 0, 0.8),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.project-detail-phone img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 2rem;
+  display: block;
+}
+
+.project-detail-phone-notch {
+  position: absolute;
+  top: 0.55rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 38%;
+  height: 1.4rem;
+  border-radius: 0 0 0.9rem 0.9rem;
+  background: #0b0b0b;
+  z-index: 2;
 }
 
 .project-detail-cta {
@@ -189,24 +251,4 @@ html.lenis body {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.72);
-}
-
-.project-detail-gallery {
-  display: grid;
-  gap: 1.5rem;
-}
-
-@media (min-width: 768px) {
-  .project-detail-gallery {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1.75rem;
-  }
-
-  .project-detail-gallery-featured {
-    grid-column: span 2;
-  }
-
-  .project-detail-gallery-featured img {
-    max-height: 52vh;
-  }
 }

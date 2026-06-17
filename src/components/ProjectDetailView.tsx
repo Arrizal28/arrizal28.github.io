@@ -1,8 +1,8 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
 import { ArrowLeft, ArrowUpRight, Code2 } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Project } from '../data/projects'
-import { useVerticalLenis } from '../hooks/useVerticalLenis'
+import { useHorizontalLenis } from '../hooks/useHorizontalLenis'
 
 interface ProjectDetailViewProps {
   project: Project | null
@@ -31,7 +31,7 @@ function ProjectLinkButton({ href, label, icon = 'external' }: ProjectLinkButton
       className="project-detail-cta group inline-flex items-center gap-3"
       data-cursor-hover=""
     >
-      <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/[0.03] transition-colors group-hover:border-[#e8702a] group-hover:bg-[#e8702a]/10">
+      <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/3 transition-colors group-hover:border-[#e8702a] group-hover:bg-[#e8702a]/10">
         {icon === 'github' ? <Code2 size={16} /> : <ArrowUpRight size={16} />}
       </span>
       <span className="text-xs tracking-[0.22em] uppercase">{label}</span>
@@ -65,13 +65,165 @@ function ProjectLinks({ project }: { project: Project }) {
 }
 
 /**
- * Full-screen project detail with vertical editorial scroll layout.
+ * Renders a single portrait phone mockup showing one app screenshot.
  */
-export function ProjectDetailView({ project, onClose }: ProjectDetailViewProps) {
+function ProjectPhoneMockup({
+  project,
+  screenshot,
+  index,
+  priority = false,
+}: {
+  project: Project
+  screenshot: string
+  index: number
+  priority?: boolean
+}) {
+  const label = GALLERY_LABELS[index] ?? `Feature ${index + 1}`
+
+  return (
+    <figure className="project-detail-phone-item flex flex-col items-center">
+      <div className="project-detail-phone">
+        <span className="project-detail-phone-notch" />
+        <img
+          src={screenshot}
+          alt={`${project.title} — ${label}`}
+          decoding="async"
+          fetchPriority={priority ? 'high' : 'auto'}
+        />
+      </div>
+      <figcaption className="mt-6 text-center">
+        <span className="text-[10px] tracking-[0.3em] text-[#e8702a] uppercase">
+          {String(index + 1).padStart(2, '0')}
+        </span>
+        <p className="mt-1 text-sm text-white/55">{label}</p>
+      </figcaption>
+    </figure>
+  )
+}
+
+/**
+ * Renders the hero strip with project info and a continuous row of phone mockups.
+ */
+function ProjectHeroStrip({ project }: { project: Project }) {
+  return (
+    <section className="project-detail-hero-strip relative flex h-dvh shrink-0 items-center border-r border-white/10 bg-[#050505]">
+      <span className="font-clash pointer-events-none absolute top-24 right-12 text-[22vw] leading-none font-bold text-white/4 select-none md:right-20 md:text-[14vw]">
+        {project.number}
+      </span>
+
+      <div className="project-detail-content-inset project-detail-hero-copy flex shrink-0 flex-col justify-center">
+        <p className="editorial-label mb-6">Project {project.number}</p>
+        <div className="flex flex-wrap items-end gap-5">
+          <h1 className="font-clash text-4xl leading-[0.95] font-bold tracking-tight uppercase md:text-6xl lg:text-7xl">
+            {project.title}
+          </h1>
+          <span className="mb-1 rounded-full border border-[#e8702a]/40 px-4 py-1.5 text-[10px] tracking-[0.3em] text-[#e8702a] uppercase">
+            {project.year}
+          </span>
+        </div>
+        <p className="mt-8 max-w-xl text-base leading-[1.8] text-white/70 md:text-lg">
+          {project.description}
+        </p>
+
+        <div className="mt-10">
+          <p className="editorial-label mb-4">Tech stack</p>
+          <div className="flex flex-wrap gap-2.5">
+            {project.techStack.map((tech) => (
+              <span key={tech} className="project-detail-tech-pill">
+                {tech}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-12 border-t border-white/10 pt-10">
+          <ProjectLinks project={project} />
+        </div>
+      </div>
+
+      <div className="project-detail-gallery-phones flex items-center">
+        {project.screenshots.map((screenshot, index) => (
+          <ProjectPhoneMockup
+            key={`${screenshot}-${index}`}
+            project={project}
+            screenshot={screenshot}
+            index={index}
+            priority={index === 0}
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/**
+ * Renders the closing panel with impact, role and store links.
+ */
+function ProjectClosingPanel({ project, onClose }: { project: Project; onClose: () => void }) {
+  return (
+    <section className="project-detail-panel flex flex-col justify-center bg-[#050505]">
+      <div className="project-detail-grid project-detail-content-inset py-28">
+        <div className="space-y-10">
+          <div className="project-detail-impact panel-surface rounded-3xl border border-white/10 p-8 md:p-10">
+            <p className="editorial-label mb-6 text-[#e8702a]">Impact</p>
+            <blockquote className="font-clash text-xl leading-snug font-medium text-white/90 md:text-2xl lg:text-3xl">
+              &ldquo;{project.impact}&rdquo;
+            </blockquote>
+          </div>
+          <div className="border-t border-white/10 pt-10">
+            <p className="editorial-label mb-4">Role</p>
+            <p className="max-w-md text-sm leading-[1.85] text-white/60 md:text-base">
+              {project.role}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-center">
+          <p className="editorial-label mb-6">Get the app</p>
+          <ProjectLinks project={project} />
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-14 inline-flex items-center gap-3 self-start text-[10px] tracking-[0.3em] text-white/35 uppercase transition-colors hover:text-[#e8702a]"
+            data-cursor-hover=""
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15">
+              <ArrowLeft size={14} />
+            </span>
+            Back to works
+          </button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+interface ProjectDetailContentProps {
+  project: Project
+  onClose: () => void
+}
+
+/**
+ * Renders the mounted detail carousel so Lenis initializes after refs attach.
+ */
+function ProjectDetailContent({ project, onClose }: ProjectDetailContentProps) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+  const [scrollProgress, setScrollProgress] = useState(0)
 
-  useVerticalLenis(wrapperRef, contentRef)
+  const handleProgress = useCallback((progress: number) => {
+    setScrollProgress(progress)
+  }, [])
+
+  useHorizontalLenis(wrapperRef, contentRef, handleProgress, true)
+
+  const progressMotion = useMotionValue(0)
+  const progressSpring = useSpring(progressMotion, { stiffness: 120, damping: 28 })
+  const indicatorScale = useTransform(progressSpring, [0, 1], [0, 1])
+
+  useEffect(() => {
+    progressMotion.set(scrollProgress)
+  }, [scrollProgress, progressMotion])
 
   useEffect(() => {
     /**
@@ -81,30 +233,67 @@ export function ProjectDetailView({ project, onClose }: ProjectDetailViewProps) 
       if (event.key === 'Escape') onClose()
     }
 
-    /**
-     * Keeps wheel events inside the detail overlay scroll container.
-     */
-    function handleWheel(event: WheelEvent) {
-      if (!wrapperRef.current?.contains(event.target as Node)) return
-      event.stopPropagation()
-    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [onClose])
 
-    if (project) {
-      window.addEventListener('keydown', handleKey)
-      window.addEventListener('wheel', handleWheel, { capture: true })
-    }
+  return (
+    <motion.div
+      className="absolute inset-0"
+      initial={{ x: '4%', opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: '4%', opacity: 0 }}
+      transition={{ duration: 0.55, ease: overlayEase }}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="group fixed top-8 left-8 z-95 inline-flex items-center gap-3 text-xs tracking-[0.25em] text-white/60 uppercase transition-colors hover:text-[#e8702a] md:top-10 md:left-12 lg:left-16"
+        data-cursor-hover=""
+      >
+        <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-[#050505]/80 backdrop-blur-sm transition-colors group-hover:border-[#e8702a]">
+          <ArrowLeft size={16} />
+        </span>
+        Back to works
+      </button>
 
-    return () => {
-      window.removeEventListener('keydown', handleKey)
-      window.removeEventListener('wheel', handleWheel, { capture: true })
-    }
-  }, [project, onClose])
+      <div
+        ref={wrapperRef}
+        className="project-detail-scroll h-dvh w-full overflow-hidden"
+        data-lenis-prevent=""
+        onWheel={(event) => event.stopPropagation()}
+      >
+        <div ref={contentRef} className="flex h-full w-max">
+          <ProjectHeroStrip project={project} />
+          <ProjectClosingPanel project={project} onClose={onClose} />
+        </div>
+      </div>
 
+      <div className="pointer-events-none fixed right-8 bottom-8 left-8 z-95 md:right-12 md:left-12 lg:right-16 lg:left-16">
+        <div className="mb-3 flex justify-between text-[10px] tracking-[0.3em] text-white/30 uppercase">
+          <span>Scroll →</span>
+          <span>{String(Math.round(scrollProgress * 100)).padStart(2, '0')}%</span>
+        </div>
+        <div className="h-px w-full bg-white/10">
+          <motion.div
+            className="h-full w-full origin-left bg-[#e8702a]"
+            style={{ scaleX: indicatorScale }}
+          />
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+/**
+ * Full-screen project detail with horizontal panel-by-panel scroll.
+ */
+export function ProjectDetailView({ project, onClose }: ProjectDetailViewProps) {
   return (
     <AnimatePresence>
       {project && (
         <motion.div
-          className="fixed inset-0 z-[90] bg-[#050505]"
+          className="fixed inset-0 z-90 bg-[#050505]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -112,166 +301,7 @@ export function ProjectDetailView({ project, onClose }: ProjectDetailViewProps) 
           data-cursor-ignore=""
           data-lenis-prevent=""
         >
-          <motion.div
-            className="absolute inset-0"
-            initial={{ y: '3%', opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: '3%', opacity: 0 }}
-            transition={{ duration: 0.55, ease: overlayEase }}
-          >
-            <button
-              type="button"
-              onClick={onClose}
-              className="group fixed top-8 left-8 z-[95] inline-flex items-center gap-3 text-xs tracking-[0.25em] text-white/60 uppercase transition-colors hover:text-[#e8702a] md:top-10 md:left-12 lg:left-16"
-              data-cursor-hover=""
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-[#050505]/80 backdrop-blur-sm transition-colors group-hover:border-[#e8702a]">
-                <ArrowLeft size={16} />
-              </span>
-              Back to works
-            </button>
-
-            <div
-              ref={wrapperRef}
-              className="project-detail-scroll h-dvh w-full overflow-hidden"
-              data-lenis-prevent=""
-            >
-              <div ref={contentRef}>
-                <section className="project-detail-hero relative min-h-[72vh] overflow-hidden">
-                  <img
-                    src={project.image}
-                    alt={project.title}
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                  <div className="project-detail-hero-overlay absolute inset-0" />
-                  <div className="relative flex min-h-[72vh] flex-col justify-end px-8 pb-16 pt-32 md:px-16 lg:px-24">
-                    <span className="font-clash mb-4 block text-[14vw] leading-none font-bold text-white/10 md:text-[8vw]">
-                      {project.number}
-                    </span>
-                    <div className="flex flex-wrap items-end gap-4">
-                      <h1 className="font-clash text-5xl leading-[0.9] font-bold tracking-tight uppercase md:text-7xl lg:text-8xl">
-                        {project.title}
-                      </h1>
-                      <span className="mb-2 rounded-full border border-[#e8702a]/40 px-4 py-1.5 text-[10px] tracking-[0.3em] text-[#e8702a] uppercase">
-                        {project.year}
-                      </span>
-                    </div>
-                    <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/70 md:text-xl">
-                      {project.summary}
-                    </p>
-                    <div className="mt-6 flex flex-wrap gap-2">
-                      {project.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full border border-white/15 bg-black/30 px-3 py-1 text-[10px] tracking-wide text-white/60 uppercase backdrop-blur-sm"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-
-                <section className="border-t border-white/10 px-8 py-16 md:px-16 md:py-20 lg:px-24">
-                  <div className="project-detail-grid mx-auto max-w-6xl">
-                    <div>
-                      <p className="editorial-label mb-6">About the project</p>
-                      <p className="text-base leading-relaxed text-white/65 md:text-lg">
-                        {project.description}
-                      </p>
-                      <p className="mt-8 text-sm leading-relaxed text-white/45">
-                        {project.summary}
-                      </p>
-
-                      <div className="mt-10 border-t border-white/10 pt-8">
-                        <p className="editorial-label mb-3">Role</p>
-                        <p className="text-sm leading-relaxed text-white/60">{project.role}</p>
-                      </div>
-
-                      <div className="mt-10">
-                        <ProjectLinks project={project} />
-                      </div>
-                    </div>
-
-                    <div className="project-detail-impact panel-surface rounded-3xl border border-white/10 p-8 md:p-10">
-                      <p className="editorial-label mb-6 text-[#e8702a]">Impact</p>
-                      <blockquote className="font-clash text-2xl leading-snug font-medium text-white/90 md:text-3xl">
-                        &ldquo;{project.impact}&rdquo;
-                      </blockquote>
-                    </div>
-                  </div>
-                </section>
-
-                <section className="border-t border-white/10 px-8 py-16 md:px-16 md:py-20 lg:px-24">
-                  <div className="mx-auto max-w-6xl">
-                    <p className="editorial-label mb-8">Tech stack</p>
-                    <div className="flex flex-wrap gap-3">
-                      {project.techStack.map((tech) => (
-                        <span key={tech} className="project-detail-tech-pill">
-                          {tech}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-
-                <section className="border-t border-white/10 px-8 py-16 md:px-16 md:py-20 lg:px-24">
-                  <div className="mx-auto max-w-6xl">
-                    <div className="mb-10 flex items-end justify-between gap-6">
-                      <div>
-                        <p className="editorial-label mb-3">Screenshots</p>
-                        <h2 className="font-clash text-3xl font-semibold uppercase md:text-4xl">
-                          Feature Gallery
-                        </h2>
-                      </div>
-                      <p className="hidden text-[10px] tracking-[0.3em] text-white/30 uppercase md:block">
-                        {project.screenshots.length} views
-                      </p>
-                    </div>
-
-                    <div className="project-detail-gallery">
-                      {project.screenshots.map((screenshot, index) => (
-                        <figure
-                          key={screenshot}
-                          className={`project-detail-gallery-item panel-surface overflow-hidden rounded-2xl border border-white/10 ${
-                            index === 0 ? 'project-detail-gallery-featured' : ''
-                          }`}
-                        >
-                          <img
-                            src={screenshot}
-                            alt={`${project.title} — ${GALLERY_LABELS[index] ?? `View ${index + 1}`}`}
-                            className="h-full w-full object-cover"
-                          />
-                          <figcaption className="border-t border-white/10 px-5 py-4">
-                            <span className="text-[10px] tracking-[0.3em] text-[#e8702a] uppercase">
-                              {String(index + 1).padStart(2, '0')}
-                            </span>
-                            <p className="mt-1 text-sm text-white/55">
-                              {GALLERY_LABELS[index] ?? `Feature ${index + 1}`}
-                            </p>
-                          </figcaption>
-                        </figure>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-
-                <footer className="border-t border-white/10 px-8 py-12 md:px-16 lg:px-24">
-                  <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6">
-                    <ProjectLinks project={project} />
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="text-[10px] tracking-[0.3em] text-white/35 uppercase transition-colors hover:text-[#e8702a]"
-                      data-cursor-hover=""
-                    >
-                      Close detail
-                    </button>
-                  </div>
-                </footer>
-              </div>
-            </div>
-          </motion.div>
+          <ProjectDetailContent key={project.id} project={project} onClose={onClose} />
         </motion.div>
       )}
     </AnimatePresence>
